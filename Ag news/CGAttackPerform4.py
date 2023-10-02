@@ -82,7 +82,6 @@ for i_batch, (data) in enumerate(test_loader):
         succ_rates.append(succ_rate)
         changed_nodes = changed_nodes + changed_node
         time_atk.append(time2-time1)
-        input(123)
 
 
 print('success rate:', sum(succ_rates)/len(succ_rates))
