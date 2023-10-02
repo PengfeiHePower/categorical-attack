@@ -18,7 +18,7 @@ def num_changed(true_samples, ad_samples):
 
 
 parser = argparse.ArgumentParser(description='splice')
-parser.add_argument('--budget', default=4, type=float, help='purturb budget')
+parser.add_argument('--budget', default=1, type=float, help='purturb budget')
 parser.add_argument('--dataset', default='IPS', type=str, help='dataset')
 parser.add_argument('--modeltype', default='Normal', type=str, help='model type')
 parser.add_argument('--lr', default = 0.1, type=float, help='learning rate')
