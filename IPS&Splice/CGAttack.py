@@ -32,14 +32,14 @@ def Expect_GumbelSM_grad(model, prob, inputs, label, alpha, epsilon, iters = 500
     ## penalized distance
     iter_inputs = inputs.repeat(1, iters, 1)
     dist = torch.sum(-torch.log(z+0.001) * iter_inputs, dim = 2)    ## cross entropy loss
-    print('dist.shape', dist.shape)
+    #print('dist.shape', dist.shape)
     #input(123)
     dist = torch.mean(F.relu(torch.mean(dist, axis = 0) - epsilon)) ## only penalize over bar = 1.5
 
     loss = ce - alpha * dist
     grad = torch.autograd.grad(loss, prob)[0]
 
-    print('CE Loss', ce.item(), 'Dist', dist.item(), 'Gradient Norm', torch.sum(torch.abs(grad)).item())
+    #print('CE Loss', ce.item(), 'Dist', dist.item(), 'Gradient Norm', torch.sum(torch.abs(grad)).item())
     return grad
 
 #[feature, batch, level]
@@ -74,52 +74,47 @@ class Attacker(object):
 
 
     def CGattack(self, funccall, y, budget, epsilon, eval_num, alpha):
+        # epsilon: a set of thresholds for searching
+        # alpha: a set of penalty parameters for searching
         #self.model.eval()
-        n_feature = funccall.shape[0]
+        # n_feature = funccall.shape[0]
 
         sample = self.input_handle(funccall, y)
         self.prob = torch.clone(sample) * 100
         self.prob.requires_grad = True
 
+        for epsilon_s in epsilon:
+            for k in range(self.itermax):
+                print('pgd step ' +str(k))
+                grad = Expect_GumbelSM_grad(self.model, self.prob, sample, y, alpha, epsilon_s)
 
-        for k in range(self.itermax):
+                self.prob = self.prob + self.lr * torch.sign(grad)
+                self.prob = torch.clip(self.prob, min = 1e-3, max = 15)
+                self.prob.detach()
+                self.prob.requires_grad_
+            ## Evaluation
+            self.model.eval()
+            prob3 = self.prob.repeat(1, eval_num, 1)
+            z = nn.functional.gumbel_softmax(prob3, dim = 2, tau = 0.1, hard = False)
 
-            print('pgd step ' +str(k))
-            grad = Expect_GumbelSM_grad(self.model, self.prob, sample, y, alpha, epsilon)
+            changed_nodes=[]
+            outputs = []
+            succ_rate = 0
 
-            self.prob = self.prob + self.lr * torch.sign(grad)
-            self.prob = torch.clip(self.prob, min = 1e-3, max = 15)
-            self.prob.detach()
-            self.prob.requires_grad_()
-            self.prob.retain_grad()
+            for j in range(eval_num):
+                dist = torch.sum(torch.abs(z[:, j:j+1, :] - sample)) / 2
+                output = torch.argmax(self.model(z[:, j:j+1, :]))
 
-        ## Evaluation
-        self.model.eval()
-        prob3 = self.prob.repeat(1, eval_num, 1)
-        z = nn.functional.gumbel_softmax(prob3, dim = 2, tau = 0.1, hard = False)
+                changed_nodes.append(dist.item())
+                outputs.append(output.item())
 
-        changed_nodes=[]
-        outputs = []
-
-        for j in range(eval_num):
-            dist = torch.sum(torch.abs(z[:, j:j+1, :] - sample)) / 2
-            output = torch.argmax(self.model(z[:, j:j+1, :]))
-
-            changed_nodes.append(dist.item())
-            outputs.append(output.item())
-
-            if not (output == y):
-                print('True Label', y, 'After Attack', output.item(), 'Perturb #', dist.item())
-
-        succ_atk = [i for i in range(eval_num) if changed_nodes[i]<=budget and outputs[i]!=y]
-        succ_rate = int(len(succ_atk)>0)
+                if not (output == y):
+                    print('True Label', y, 'After Attack', output.item(), 'Perturb #', dist.item())
+                    if dist.item()<=budget:
+                        succ_rate = 1
+                        break
 
         print('avg changed nodes:', sum(changed_nodes)/len(changed_nodes))
         print('success rate:', succ_rate)
 
-        print('Sampling Finished')
-        print('prob shape:', self.prob.shape)
-        prob_np = self.prob.reshape(20,1104).detach().cpu().numpy()
-        print(np.argmax(prob_np, axis=1))
-        np.savetxt('prob/prob_5.txt', prob_np, delimiter=',')
         return succ_rate, changed_nodes
