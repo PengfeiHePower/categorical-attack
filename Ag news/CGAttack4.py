@@ -100,4 +100,3 @@ class Attacker(object):
 
         print('Sampling Finished')
         return succ_rate, changed_nodes
-        #input(123)
