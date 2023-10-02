@@ -47,7 +47,7 @@ succ_rates = []
 srs_total = []
 
 
-epsilon=[]
+epsilon=np.arange(0.13, 0.35, 0.01)
 if len(epsilon) == 0:
     raise ValueError("Please specify epsilon list.")
 
