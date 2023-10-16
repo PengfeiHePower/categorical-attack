@@ -37,10 +37,10 @@ alpha = args.alpha
 
 print(Dataset, Model_Type, budget)
 
-X, y = CGA.load_data(Dataset)
+X, y = CGA.load_data(Dataset) # load dataset
 print('data size:', len(X))
 print('Data loaded.')
-best_parameters_file = CGA.model_file(Dataset, Model_Type)
+best_parameters_file = CGA.model_file(Dataset, Model_Type) #load model file
 print('Model loaded.')
 
 succ_rates = []
@@ -51,7 +51,7 @@ epsilon=np.arange(0.13, 0.35, 0.01)
 if len(epsilon) == 0:
     raise ValueError("Please specify epsilon list.")
 
-attacker = CGA.Attacker(Dataset, best_parameters_file, itermax = args.itermax, lr=args.lr)
+attacker = CGA.Attacker(Dataset, best_parameters_file, itermax = args.itermax, lr=args.lr) #initialize attaks
 print('Attacker created')
 
 
@@ -64,7 +64,7 @@ for i in range(len(X)):
     label = y[i]
     print(label)
     time1 = time.time()
-    succ_rate, changed_node = attacker.CGattack(inputs, label, budget, epsilon, eval_num, alpha)
+    succ_rate, changed_node = attacker.CGattack(inputs, label, budget, epsilon, eval_num, alpha) #conduct attack on each sample
     time2 = time.time()
     succ_rates.append(succ_rate)
     changed_nodes = changed_nodes + changed_node
